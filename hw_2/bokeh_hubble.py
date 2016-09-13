@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from bokeh.plotting import figure, curdoc
-from bokeh.layouts import widgetbox, layout, row
+from bokeh.layouts import widgetbox, layout, row, column
 from bokeh.models.widgets import CheckboxGroup
 from bokeh.models import ColumnDataSource
 from astropy.cosmology import FlatLambdaCDM
@@ -71,6 +71,15 @@ cosmo = FlatLambdaCDM(Om0=1-0.729, H0=70)
 z = np.linspace(min(merged_data['redshift']), max(merged_data['redshift']), 1000)
 distmods = cosmo.distmod(z=z).value
 
+merged_data['cosmo_distmod'] = pd.Series(cosmo.distmod(z=merged_data['redshift'].values).value)
+merged_data['resid'] = merged_data['distance_mod'].sub(merged_data['cosmo_distmod'])
+
+resid_err_y = []
+for py, err in zip(merged_data['resid'], merged_data['distance_mod_err']):
+    resid_err_y.append((py - err, py + err))
+
+merged_data['resid_err_y'] = pd.Series(resid_err_y)
+
 def sample_selection(attr, old, new):
     samples = [s+1 for s in new]
     selected_data = merged_data.loc[merged_data['sample_num'].isin(samples)]
@@ -78,12 +87,16 @@ def sample_selection(attr, old, new):
 
 TOOLS = 'wheel_zoom,box_zoom,reset'
 
-p = figure(title='Union 2.1 Compilation Hubble Diagram', tools=TOOLS)
-p.line(z, distmods, color='black', line_width=2, alpha=0.5)
+p1 = figure(title='Union 2.1 Compilation Hubble Diagram', plot_height=400, plot_width=1000, tools=TOOLS)
+# p1.line(z, distmods, color='black', line_width=2, alpha=0.5)
 source = ColumnDataSource(merged_data)
-p.circle('redshift', 'distance_mod', source=source, color='color')
-p.multi_line('y_err_x', 'y_err_y', source=source, color='color', alpha=0.8)
+p1.circle('redshift', 'distance_mod', source=source, color='color', alpha=0.8)
+p1.multi_line('y_err_x', 'y_err_y', source=source, color='color', alpha=0.8)
 selection = CheckboxGroup(active=[], labels=list(merged_data['sample'].unique()))
 selection.on_change('active', sample_selection)
-r = row(p, widgetbox(selection))
+p2 = figure(title='Hubble diagram residuals', tools=TOOLS, plot_height=200, plot_width=1000)
+p2.circle('redshift', 'resid', source=source, color='color', alpha=0.8)
+p2.multi_line('y_err_x', 'resid_err_y', source=source, color='color', alpha=0.8)
+c = column(p1, p2)
+r = row(c, widgetbox(selection))
 curdoc().add_root(r)
