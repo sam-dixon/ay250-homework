@@ -4,7 +4,8 @@ import pandas as pd
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import widgetbox, layout, row, column
 from bokeh.models.widgets import CheckboxGroup
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, Range1d
+from bokeh.charts import Histogram
 from astropy.cosmology import FlatLambdaCDM
 
 hubble_data = np.genfromtxt('hw_2_data/Union2.1RedshiftMag.txt', usecols=(0,1,2,3),
@@ -59,6 +60,7 @@ colors = ['#a09336',
           '#a75c38']
 merged_data['color'] = pd.Series([colors[n] for n in merged_data['sample_num']])
 
+# Bokeh doesn't have errorbars (!), so I have to make them myself
 y_err_x, y_err_y = [], []
 for px, py, err in zip(merged_data['redshift'], merged_data['distance_mod'], merged_data['distance_mod_err']):
     y_err_x.append((px, px))
@@ -68,8 +70,8 @@ merged_data['y_err_x'] = pd.Series(y_err_x)
 merged_data['y_err_y'] = pd.Series(y_err_y)
 
 cosmo = FlatLambdaCDM(Om0=1-0.729, H0=70)
-z = np.linspace(min(merged_data['redshift']), max(merged_data['redshift']), 1000)
-distmods = cosmo.distmod(z=z).value
+z = np.linspace(merged_data['redshift'].min(), merged_data['redshift'].max(), 100)
+cosmo_distmod_range = cosmo.distmod(z=z).value
 
 merged_data['cosmo_distmod'] = pd.Series(cosmo.distmod(z=merged_data['redshift'].values).value)
 merged_data['resid'] = merged_data['distance_mod'].sub(merged_data['cosmo_distmod'])
@@ -81,22 +83,33 @@ for py, err in zip(merged_data['resid'], merged_data['distance_mod_err']):
 merged_data['resid_err_y'] = pd.Series(resid_err_y)
 
 def sample_selection(attr, old, new):
-    samples = [s+1 for s in new]
-    selected_data = merged_data.loc[merged_data['sample_num'].isin(samples)]
-    source.data = source.from_df(selected_data)
+    if len(new) == 0:
+        source.data = source.from_df(merged_data)
+    else:
+        samples = [s+1 for s in new]
+        selected_data = merged_data.loc[merged_data['sample_num'].isin(samples)]
+        source.data = source.from_df(selected_data)
+    z = np.linspace(min(source.data['redshift']), max(source.data['redshift']), 100)
+    cosmo_distmod_range = cosmo.distmod(z=z).value
+    source.data['z_range'] = z
+    source.data['cosmo_distmod_range'] = cosmo_distmod_range
 
-TOOLS = 'wheel_zoom,box_zoom,reset'
+TOOLS = 'wheel_zoom,box_zoom,box_select,reset'
 
 p1 = figure(title='Union 2.1 Compilation Hubble Diagram', plot_height=400, plot_width=1000, tools=TOOLS)
-# p1.line(z, distmods, color='black', line_width=2, alpha=0.5)
 source = ColumnDataSource(merged_data)
+
 p1.circle('redshift', 'distance_mod', source=source, color='color', alpha=0.8)
 p1.multi_line('y_err_x', 'y_err_y', source=source, color='color', alpha=0.8)
+p1.line(z, cosmo_distmod_range, color='black', alpha=0.3)
+p1.x_range = Range1d(z[0]-0.1, z[-1]+0.1)
+p1.y_range = Range1d(cosmo_distmod_range[0]-1, cosmo_distmod_range[-1]+1)
 selection = CheckboxGroup(active=[], labels=list(merged_data['sample'].unique()))
 selection.on_change('active', sample_selection)
 p2 = figure(title='Hubble diagram residuals', tools=TOOLS, plot_height=200, plot_width=1000)
 p2.circle('redshift', 'resid', source=source, color='color', alpha=0.8)
 p2.multi_line('y_err_x', 'resid_err_y', source=source, color='color', alpha=0.8)
-c = column(p1, p2)
-r = row(c, widgetbox(selection))
+r1 = row(p1, widgetbox(selection))
+r2 = row(p2)
+r = column(r1, r2)
 curdoc().add_root(r)
