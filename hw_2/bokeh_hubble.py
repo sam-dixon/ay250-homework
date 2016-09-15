@@ -6,6 +6,7 @@ from bokeh.models.widgets import CheckboxGroup
 from bokeh.models import ColumnDataSource, Range1d
 from astropy.cosmology import FlatLambdaCDM
 
+# Gathering all the data
 hubble_data = np.genfromtxt('hw_2_data/Union2.1RedshiftMag.txt',
                             usecols=(0, 1, 2, 3),
                             names='name, redshift, distance_mod, distance_mod_err',
@@ -36,8 +37,12 @@ sample_dict = {1: 'Hamuy et al. (1996)',
                19: 'Suzuki et al. (2012)'}
 sample_info['sample'] = pd.Series([sample_dict[i] for i in sample_info['sample_num']])
 
+# Merge the distance mod/redshift info with the sample info dictionary
 merged_data = pd.merge(hubble_data, sample_info)
 
+# Assign colors to each sample.
+# These colors were chosen to maximize contrast
+# http://tools.medialab.sciences-po.fr/iwanthue/
 colors = ['#a09336',
           '#b253bf',
           '#60b544',
@@ -65,25 +70,26 @@ y_err_x, y_err_y = [], []
 for px, py, err in zip(merged_data['redshift'], merged_data['distance_mod'], merged_data['distance_mod_err']):
     y_err_x.append((px, px))
     y_err_y.append((py - err, py + err))
-
 merged_data['y_err_x'] = pd.Series(y_err_x)
 merged_data['y_err_y'] = pd.Series(y_err_y)
 
+# Do the relevant cosmological calculations with the best fit LCDM cosmology
 cosmo = FlatLambdaCDM(Om0=1-0.729, H0=70)
 z = np.linspace(merged_data['redshift'].min(), merged_data['redshift'].max(), 100)
 cosmo_distmod_range = cosmo.distmod(z=z).value
 
-merged_data['cosmo_distmod'] = pd.Series(cosmo.distmod(z=merged_data['redshift'].values).value)
-merged_data['resid'] = merged_data['distance_mod'].sub(merged_data['cosmo_distmod'])
-
+# Add the cosmology residuals to the dataframe
+cosmo_distmod = pd.Series(cosmo.distmod(z=merged_data['redshift'].values).value)
+merged_data['resid'] = merged_data['distance_mod'].sub(cosmo_distmod)
+# and calculate error bars
 resid_err_y = []
 for py, err in zip(merged_data['resid'], merged_data['distance_mod_err']):
     resid_err_y.append((py - err, py + err))
-
 merged_data['resid_err_y'] = pd.Series(resid_err_y)
 
 
 def sample_selection(attr, old, new):
+    """Callback function for changing the checkbox selection"""
     if len(new) == 0:
         source.data = source.from_df(merged_data)
     else:
@@ -99,20 +105,23 @@ TOOLS = 'wheel_zoom,box_zoom,box_select,reset'
 
 source = ColumnDataSource(merged_data)
 
-p1 = figure(title='Union 2.1 Compilation Hubble Diagram', plot_height=400, plot_width=1000, tools=TOOLS)
-p1.line(z, cosmo_distmod_range, color='black', alpha=0.3, legend='Best fit: OmLambda = 0.72')
+p1 = figure(title='Union 2.1 Compilation Hubble Diagram', plot_height=400, 
+            plot_width=1000, tools=TOOLS)
+p1.line(z, cosmo_distmod_range, color='black', alpha=0.3, 
+        legend='Best fit: OmLambda = 0.729')
 p1.x_range = Range1d(z[0]-0.1, z[-1]+0.1)
 p1.y_range = Range1d(cosmo_distmod_range[0]-1, cosmo_distmod_range[-1]+1)
 p1.yaxis.axis_label = 'Distance modulus'
-p1.circle('redshift', 'distance_mod', source=source, color='color', alpha=0.8, legend='Selected data')
+p1.circle('redshift', 'distance_mod', source=source, color='color', alpha=0.8, 
+          legend='Selected data')
 p1.multi_line('y_err_x', 'y_err_y', source=source, color='color', alpha=0.8)
-
 
 labels = list(merged_data['sample'].unique())
 selection = CheckboxGroup(active=[], labels=labels)
 selection.on_change('active', sample_selection)
 
-p2 = figure(title='Hubble diagram residuals', tools=TOOLS, plot_height=200, plot_width=1000)
+p2 = figure(title='Hubble diagram residuals', tools=TOOLS, plot_height=200, 
+            plot_width=1000)
 p2.line(z, np.zeros(len(z)), color='black', alpha=0.3)
 p2.x_range = Range1d(z[0]-0.1, z[-1]+0.1)
 p2.y_range = Range1d(-3, 3)
