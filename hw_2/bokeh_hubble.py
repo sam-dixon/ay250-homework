@@ -1,26 +1,26 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 from bokeh.plotting import figure, curdoc
-from bokeh.layouts import widgetbox, layout, row, column
+from bokeh.layouts import widgetbox, row, column
 from bokeh.models.widgets import CheckboxGroup
 from bokeh.models import ColumnDataSource, Range1d
-from bokeh.charts import Histogram
 from astropy.cosmology import FlatLambdaCDM
 
-hubble_data = np.genfromtxt('hw_2_data/Union2.1RedshiftMag.txt', usecols=(0,1,2,3),
+hubble_data = np.genfromtxt('hw_2_data/Union2.1RedshiftMag.txt',
+                            usecols=(0, 1, 2, 3),
                             names='name, redshift, distance_mod, distance_mod_err',
                             dtype=['U32', 'f8', 'f8', 'f8'])
 hubble_data = pd.DataFrame(hubble_data)
-sample_info = np.genfromtxt('hw_2_data/SCPUnion2.1_AllSNe.txt', delimiter=' & ', usecols=(0,7),
-                            names='name, sample_num', dtype=['U32','int'])
+sample_info = np.genfromtxt('hw_2_data/SCPUnion2.1_AllSNe.txt', delimiter=' & ',
+                            usecols=(0, 7), names='name, sample_num',
+                            dtype=['U32', 'int'])
 sample_info = pd.DataFrame(sample_info)
 sample_dict = {1: 'Hamuy et al. (1996)',
                2: 'Krisciunases et al. (2005)',
                3: 'Riess et al. (1999)',
                4: 'Jha et al. (2006)',
                5: 'Kowalski et al. (2008)',
-               6: 'Hicken et al. (2009)', 
+               6: 'Hicken et al. (2009)',
                7: 'Contreras et al. (2010)',
                8: 'Holtzman et al. (2009)',
                9: 'Riess et al. (1998)',
@@ -81,6 +81,7 @@ for py, err in zip(merged_data['resid'], merged_data['distance_mod_err']):
     resid_err_y.append((py - err, py + err))
 
 merged_data['resid_err_y'] = pd.Series(resid_err_y)
+
 
 def sample_selection(attr, old, new):
     if len(new) == 0:
