@@ -2,6 +2,7 @@ import numpy as np
 from time import time
 import multiprocessing
 import threading
+import ipyparallel
 
 
 def timer(fn):
@@ -89,6 +90,17 @@ def pi_proc(n_tot, n_procs):
     return pi_approx
 
 
+@timer
+def pi_cluster(n_tot, n_cores):
+    c = ipyparallel.Client()
+    view = c.load_balanced_view()
+    view.block = True
+    darts = view.map(dart, range(n_tot))
+    n_in = sum(darts)
+    pi_approx = 4 * n_in / n_tot
+    return pi_approx
+
+
 def do_experiment(fn, n_tot_range, n_workers):
     times = []
     for i in range(1):
@@ -98,30 +110,46 @@ def do_experiment(fn, n_tot_range, n_workers):
 
 
 if __name__ == '__main__':
-    n_tot_range = [int(i) for i in np.logspace(2, 7, 20)]
+    n_tot_range = [int(i) for i in np.logspace(1, 7, 10)]
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
-    sns.set_style('white')
-    sns.set_color_codes()
+    # import seaborn as sns
+    # sns.set_style('white')
+    # sns.set_color_codes()
     print('Serial')
     mean, std = do_experiment(pi_serial, n_tot_range, 1)
-    plt.plot(n_tot_range, mean, 'b-')
+    plt.plot(n_tot_range, mean, 'b-', label='Serial', linewidth=2)
+    plt.plot(n_tot_range, n_tot_range/mean, 'b--', linewidth=2)
     plt.fill_between(n_tot_range, mean-std, mean+std, color='b', alpha=0.5)
     print('4 threads')
     mean, std = do_experiment(pi_threading, n_tot_range, 4)
-    plt.plot(n_tot_range, mean, 'g-')
+    plt.plot(n_tot_range, mean, 'g-', label='4 threads', linewidth=2)
+    plt.plot(n_tot_range, n_tot_range/mean, 'g--', linewidth=2)
     plt.fill_between(n_tot_range, mean-std, mean+std, color='g', alpha=0.5)
     print('2 processes')
     mean, std = do_experiment(pi_proc, n_tot_range, 2)
-    plt.plot(n_tot_range, mean, 'r-')
+    plt.plot(n_tot_range, mean, 'r-', label='2 processes', linewidth=2)
+    plt.plot(n_tot_range, n_tot_range/mean, 'r--', linewidth=2)
     plt.fill_between(n_tot_range, mean-std, mean+std, color='r', alpha=0.5)
     print('4 processes')
     mean, std = do_experiment(pi_proc, n_tot_range, 4)
-    plt.plot(n_tot_range, mean, 'y-')
-    plt.fill_between(n_tot_range, mean-std, mean+std, color='yellow', alpha=0.5)
+    plt.plot(n_tot_range, mean, 'y-', label='4 processes', linewidth=2)
+    plt.plot(n_tot_range, n_tot_range/mean, 'y--', linewidth=2)
+    plt.fill_between(n_tot_range, mean-std, mean+std, color='y', alpha=0.5)
+    print('8 processes')
+    mean, std = do_experiment(pi_proc, n_tot_range, 8)
+    plt.plot(n_tot_range, mean, 'm-', label='8 processes', linewidth=2)
+    plt.plot(n_tot_range, n_tot_range/mean, 'm--', linewidth=2)
+    plt.fill_between(n_tot_range, mean-std, mean+std, color='m', alpha=0.5)
+    # print('2 core ipycluster')
+    # mean, std = do_experiment(pi_cluster, n_tot_range, 4)
+    # plt.plot(n_tot_range, mean, 'm-')
+    # plt.fill_between(n_tot_range, mean-std, mean+std, color='m', alpha=0.5)
     plt.xscale('log')
     plt.yscale('log')
+    plt.legend()
+    plt.xlabel('Number of darts')
+    plt.ylabel('Execution time/Simulation rate')
     plt.show()
 
 
