@@ -13,7 +13,7 @@ CalCalc can be used from the command line or as a python module.
 The command line usage is
 
 ```
-python CalCalc.py [-h] [-s query] [-f]
+python calcalc.py [-h] [-s query] [-f]
 
 -h, --help  Print help message and exit
 -s query    Send a query string to WA
@@ -23,9 +23,10 @@ python CalCalc.py [-h] [-s query] [-f]
 e.g.
 
 ```
-$ python CalCalc.py -s 'weight of the sun * 30'
+$ python calcalc.py -s 'weight of the sun * 30'
 5.965305×10^31 kg  (kilograms)
-$ python CalCalc.py -s 'weight of the sun * 30' -f
+$ python calcalc.py -s 'weight of the sun * 30' -f
+5.965305e+31
 ```
 
 To use CalCalc in the python/IPython shell:
@@ -35,4 +36,5 @@ To use CalCalc in the python/IPython shell:
 >>> calculate('weight of the sun * 30')
 '5.965305×10^31 kg  (kilograms)'
 >>> calculate('weight of the sun * 30', return_float=True)
+5.965305e+31
 ```

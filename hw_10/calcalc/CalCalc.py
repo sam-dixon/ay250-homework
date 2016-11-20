@@ -5,8 +5,8 @@ Interface for Wolfram Alpha
 import argparse
 import xml.etree.ElementTree as et
 import requests
-from api import APPID
 
+APPID = 'J5TQ9X-6EGKUG8WT2'
 
 def parse():
     """Parse command line options"""
@@ -35,13 +35,17 @@ def calculate(query, return_float=False):
                 return result_text
             else:
                 return text2float(result_text)
-    return "Non-numerical result"
+    return "Wolfram Alpha didn't understand your query"
 
 
 def text2float(text):
     """Convert text with units to a float"""
     if text[0].isdigit():
         remove_unit = text.split()[0]
+        if b'\xc3\x97' in remove_unit.encode():
+            prefix, power = [x.decode() for x in remove_unit.encode().split(b'\xc3\x97')]
+            base, exp = power.split('^')
+            return float(prefix)*float(base)**float(exp)
         return float(remove_unit)
     print("Can't convert to float")
     return text
@@ -52,7 +56,7 @@ def test_simple():
 
 
 def test_no_numerical_result():
-    fail_msg = "Non-numerical result"
+    fail_msg = "Wolfram Alpha didn't understand your query"
     assert calculate('berkeley') == fail_msg
 
 
