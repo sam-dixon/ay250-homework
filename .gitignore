@@ -1,2 +1,6 @@
 hw_1/data/
 *.ipynb_checkpoints/
+*/.DS_Store
+*/__pycache__
+homework-1/data/
+*/*/*.pyc
