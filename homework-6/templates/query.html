@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% set page_title = 'Query BibTeX collection' %}
+
+{% block content %}
+	<a href="{{ url_for('index') }}">Return home</a><br>
+	<h1>Query collection: {{ collection }}</h1>
+	<p>Use SQL syntax to enter the query string that follows the "WHERE".</p>
+	<p>Column names are: citation_tag, author_list, editor_list, journal_book, volume, pages, year, title.</p>
+	<p>For wildcards, use "LIKE" and "%"" for multicharacter wildcards or "_" for single character wildcards.</p>
+	<form action="" method="POST">
+	Query:
+	<input type="text" name="query" size=200/>
+	<input type="submit" />
+	</form>
+	<hr>
+	<h1>Results:</h1>
+	{% for result in results %}
+		<li>
+			<b>Tag</b>: <a href="http://www.adsabs.harvard.edu/abs/{{ result.citation_tag }}">{{ result.citation_tag }}</a><br>
+			<b>Authors</b>: {{ result.author_list }}<br>
+			<b>Editors</b>: {{ result.editor_list }}<br>
+			<b>Journal/Book</b>: {{ result.journal_book }}<br>
+			<b>Volume</b>: {{ result.volume }}<br>
+			<b>Pages</b>: {{ result.pages }}<br>
+			<b>Year</b>: {{ result.year }}<br>
+			<b>Title</b>: {{ result.title }}<br>
+			<b>Collection</b>: {{ result.name }}<br>
+			<br>
+		</li>
+	{% else %}
+		<li>No results.</li>
+	{% endfor %}
+{% endblock %}

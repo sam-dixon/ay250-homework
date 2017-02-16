@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+	<a href="{{ url_for('add_collection') }}">Add new collection</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+	<a href="{{ url_for('query') }}">Query all collections</a>
+	<h1>Collections</h1>
+	{% if collections is defined %}
+	<p>Select a collection to query:</p>
+	{% endif %}
+	{% for c in collections %}
+		<li><a href="{{ url_for('query', collection=c) }}">{{ c }}</a></li>
+	{% else %}
+		<li>No collections to show. Upload a collection using the link above.</li>
+	{% endfor %}
+{% endblock %}
